@@ -1,9 +1,11 @@
+import { connection } from "next/server";
 import { Suspense } from "react";
 import TiendaClient from "@/src/components/TiendaClient";
 import { ProductoService } from "@/src/services/ProductoService";
 import { CATALOGO_DEMO } from "@/src/data/catalogoDemo";
 
 async function Catalogo() {
+  await connection(); // se lee en cada petición, nunca se prerenderiza
   let productos: Awaited<ReturnType<ProductoService["listarDisponibles"]>> = [];
   try {
     productos = await new ProductoService().listarDisponibles();

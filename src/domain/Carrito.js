@@ -2,6 +2,8 @@
  * Carrito puro: ítems, cantidades, totales y persistencia en localStorage.
  * Cada ítem: { id, nombre, precio, imagen, cantidad }.
  */
+import { precioEn } from "@/src/domain/monedas";
+
 export class Carrito {
   static STORAGE_KEY = "yuanstore:carrito";
 
@@ -18,6 +20,7 @@ export class Carrito {
         id: producto.id,
         nombre: producto.nombre,
         precio: producto.precio,
+        precios: producto.precios ?? {},
         imagen: producto.imagen ?? "",
         cantidad,
       });
@@ -50,6 +53,17 @@ export class Carrito {
 
   get total() {
     return this.items.reduce((s, i) => s + i.precio * i.cantidad, 0);
+  }
+
+  /** Total del carrito en la moneda dada (respeta los precios fijados por moneda). */
+  totalEn(moneda) {
+    const total = this.items.reduce((s, i) => s + precioEn(i, moneda) * i.cantidad, 0);
+    return Math.round(total * 100) / 100;
+  }
+
+  /** Subtotal de una línea en la moneda dada. */
+  subtotalEn(item, moneda) {
+    return Math.round(precioEn(item, moneda) * item.cantidad * 100) / 100;
   }
 
   get vacio() {

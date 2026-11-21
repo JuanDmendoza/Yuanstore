@@ -1,17 +1,19 @@
 // Catálogo de muestra: se usa mientras la base de datos esté vacía o no responda.
-const p = (id, nombre, categoria, precio, bestSeller = false) => ({
+const p = (id, nombre, categoria, precio, bestSeller = false, fisica = null) => ({
   id: `demo-${id}`,
   nombre,
   categoria,
   precio,
+  precios: {},
+  fisica: fisica ? { precio: fisica, precios: {} } : null,
   bestSeller,
   imagen: "",
 });
 
 export const CATALOGO_DEMO = [
-  p(1, "Kitsune", "Fruta", 91000, true),
-  p(2, "Buddha", "Fruta", 24000, true),
-  p(3, "Dragon", "Fruta", 115000),
+  p(1, "Kitsune", "Fruta", 91000, true, 60000),
+  p(2, "Buddha", "Fruta", 24000, true, 15000),
+  p(3, "Dragon", "Fruta", 115000, false, 80000),
   p(4, "Gas", "Fruta", 68000),
   p(5, "Venom", "Fruta", 34500),
   p(6, "2x Mastery", "Gamepass", 11500),

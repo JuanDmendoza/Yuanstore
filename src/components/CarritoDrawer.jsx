@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { PedidoWhatsApp } from "@/src/domain/PedidoWhatsApp";
-import { formatearPrecio } from "@/src/domain/monedas";
+import { formatearMonto } from "@/src/domain/monedas";
 
 export default function CarritoDrawer({ abierto, onCerrar, carrito, moneda, onCambiar, onQuitar }) {
   const [nombre, setNombre] = useState("");
@@ -86,7 +86,7 @@ export default function CarritoDrawer({ abierto, onCerrar, carrito, moneda, onCa
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">{item.nombre}</p>
                   <p className="whitespace-nowrap text-xs text-suave">
-                    {formatearPrecio(item.precio * item.cantidad, moneda)}
+                    {formatearMonto(carrito.subtotalEn(item, moneda), moneda)}
                   </p>
                 </div>
                 <div className="flex items-center rounded-lg bg-superficie">
@@ -148,7 +148,7 @@ export default function CarritoDrawer({ abierto, onCerrar, carrito, moneda, onCa
           <div className="flex items-center justify-between rounded-lg bg-fondo px-4 py-3">
             <span className="text-sm font-semibold text-suave">Total</span>
             <span className="whitespace-nowrap text-lg font-bold text-acento">
-              {formatearPrecio(carrito.total, moneda)}
+              {formatearMonto(carrito.totalEn(moneda), moneda)}
             </span>
           </div>
 

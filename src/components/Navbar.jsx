@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { MONEDAS, formatearPrecio } from "@/src/domain/monedas";
+import { MONEDAS, formatearMonto } from "@/src/domain/monedas";
 
 export default function Navbar({ busqueda, onBusqueda, moneda, onMoneda, carrito, onAbrirCarrito }) {
   const [menuMoneda, setMenuMoneda] = useState(false);
@@ -102,7 +102,7 @@ export default function Navbar({ busqueda, onBusqueda, moneda, onMoneda, carrito
             </span>
             {!carrito.vacio && (
               <span className="hidden whitespace-nowrap sm:inline">
-                {formatearPrecio(carrito.total, moneda)}
+                {formatearMonto(carrito.totalEn(moneda), moneda)}
               </span>
             )}
           </button>
