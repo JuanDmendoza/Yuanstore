@@ -6,7 +6,6 @@ import { MONEDA_DEFECTO } from "@/src/domain/monedas";
 import Navbar from "@/src/components/Navbar";
 import ProductoCard from "@/src/components/ProductoCard";
 import CarritoDrawer from "@/src/components/CarritoDrawer";
-import ProductoModal from "@/src/components/ProductoModal";
 
 const FILTROS = [
   { id: "todos", etiqueta: "Todos", coincide: () => true },
@@ -23,7 +22,6 @@ export default function TiendaClient({ productos }) {
   const [filtro, setFiltro] = useState("todos");
   const [moneda, setMoneda] = useState(MONEDA_DEFECTO);
   const [drawerAbierto, setDrawerAbierto] = useState(false);
-  const [elegido, setElegido] = useState(null); // fruta con el modal Perma/Física abierto
 
   const carrito = useMemo(() => new Carrito(items), [items]);
 
@@ -45,7 +43,6 @@ export default function TiendaClient({ productos }) {
   const cambiar = (id, delta) => setItems(new Carrito(items).cambiarCantidad(id, delta).items);
   const quitar = (id) => setItems(new Carrito(items).quitar(id).items);
   const cerrar = useCallback(() => setDrawerAbierto(false), []);
-  const cerrarModal = useCallback(() => setElegido(null), []);
 
   const visibles = useMemo(() => {
     const { coincide } = FILTROS.find((f) => f.id === filtro);
@@ -98,7 +95,7 @@ export default function TiendaClient({ productos }) {
         ) : (
           <div className="mt-5 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {visibles.map((p) => (
-              <ProductoCard key={p.id} producto={p} moneda={moneda} onAgregar={agregar} onElegir={setElegido} />
+              <ProductoCard key={p.id} producto={p} moneda={moneda} onAgregar={agregar} />
             ))}
           </div>
         )}
@@ -107,10 +104,6 @@ export default function TiendaClient({ productos }) {
       <footer className="border-t border-borde px-4 py-6 text-center text-xs text-suave">
         © {new Date().getFullYear()} Yuan Store. Todos los derechos reservados.
       </footer>
-
-      {elegido && (
-        <ProductoModal producto={elegido} moneda={moneda} onAgregar={agregar} onCerrar={cerrarModal} />
-      )}
 
       <CarritoDrawer
         abierto={drawerAbierto}
