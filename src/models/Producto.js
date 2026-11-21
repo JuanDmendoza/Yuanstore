@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-export const CATEGORIAS = ["Fruta", "Gamepass"];
+export const CATEGORIAS = ["Fruta", "Gamepass", "Skin"];
 
 const ProductoSchema = new mongoose.Schema(
   {
