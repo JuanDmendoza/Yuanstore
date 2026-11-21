@@ -23,4 +23,10 @@ const ProductoSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Con hot reload, `mongoose.models` conserva un modelo con el esquema antiguo y descarta
+// en silencio los campos nuevos (strict). Si falta un campo, se recompila el modelo.
+if (mongoose.models.Producto && !mongoose.models.Producto.schema.path("precioFisica")) {
+  mongoose.deleteModel("Producto");
+}
+
 export default mongoose.models.Producto ?? mongoose.model("Producto", ProductoSchema);
