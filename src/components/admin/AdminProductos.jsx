@@ -6,15 +6,8 @@ import { logoutAction } from "@/app/admin/auth";
 import { CATEGORIAS } from "@/src/domain/categorias";
 import { MONEDAS, formatearPrecio } from "@/src/domain/monedas";
 import { esFruta } from "@/src/domain/variantes";
+import { normalizarTexto } from "@/src/domain/texto";
 import ProductoForm from "./ProductoForm";
-
-/** Minúsculas y sin acentos, para que "física" y "fisica" coincidan. */
-const normalizar = (t) =>
-  String(t ?? "")
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .trim();
 
 /** Filas de precio de un producto: las frutas muestran Perma y, si existe, Física. */
 function variantes(p) {
@@ -34,9 +27,9 @@ export default function AdminProductos({ productos }) {
   const [busqueda, setBusqueda] = useState("");
   const [filtro, setFiltro] = useState("Todos");
 
-  const termino = normalizar(busqueda);
+  const termino = normalizarTexto(busqueda);
   const visibles = productos.filter(
-    (p) => (filtro === "Todos" || p.categoria === filtro) && normalizar(p.nombre).includes(termino)
+    (p) => (filtro === "Todos" || p.categoria === filtro) && normalizarTexto(p.nombre).includes(termino)
   );
 
   const cerrar = useCallback(() => setEdicion(null), []);

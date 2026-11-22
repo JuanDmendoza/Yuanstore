@@ -3,6 +3,7 @@
  * Cada ítem: { id, nombre, precio, imagen, cantidad }.
  */
 import { precioEn } from "@/src/domain/monedas";
+import { TIPO_FRUTA_DEFECTO, aItemCarrito, varianteDisponible } from "@/src/domain/variantes";
 
 export class Carrito {
   static STORAGE_KEY = "yuanstore:carrito";
@@ -66,6 +67,36 @@ export class Carrito {
     return Math.round(precioEn(item, moneda) * item.cantidad * 100) / 100;
   }
 
+  /**
+   * Sincroniza los ítems con el catálogo vigente: refresca nombre, precios (COP y por
+   * moneda) e imagen, y descarta los productos que ya no existen o cuya modalidad está
+   * agotada. Los nombres descartados quedan en `this.descartados`.
+   */
+  reconciliar(productos) {
+    const porId = new Map(productos.map((p) => [p.id, p]));
+    const vigentes = [];
+    this.descartados = [];
+    for (const item of this.items) {
+      const [idProducto, tipo = TIPO_FRUTA_DEFECTO] = String(item.id).split(":");
+      const producto = porId.get(idProducto);
+      if (!producto || !varianteDisponible(producto, tipo)) {
+        this.descartados.push(item.nombre);
+        continue;
+      }
+      const actual = aItemCarrito(producto, tipo);
+      vigentes.push({
+        id: item.id,
+        nombre: actual.nombre,
+        precio: actual.precio,
+        precios: actual.precios ?? {},
+        imagen: actual.imagen ?? "",
+        cantidad: item.cantidad,
+      });
+    }
+    this.items = vigentes;
+    return this;
+  }
+
   get vacio() {
     return this.items.length === 0;
   }
@@ -88,7 +119,10 @@ export class Carrito {
       const raw = storage?.getItem(Carrito.STORAGE_KEY);
       const items = raw ? JSON.parse(raw) : [];
       const validos = Array.isArray(items)
-        ? items.filter((i) => i && i.id && Number.isFinite(i.precio) && i.cantidad > 0)
+        ? items.filter(
+            // Los `demo-*` venían del antiguo catálogo de muestra: no son productos reales.
+            (i) => i && i.id && !String(i.id).startsWith("demo-") && Number.isFinite(i.precio) && i.cantidad > 0
+          )
         : [];
       return new Carrito(validos);
     } catch {

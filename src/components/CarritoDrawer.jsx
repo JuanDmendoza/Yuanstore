@@ -4,13 +4,22 @@ import { useEffect, useState } from "react";
 import { PedidoWhatsApp } from "@/src/domain/PedidoWhatsApp";
 import { formatearMonto } from "@/src/domain/monedas";
 
-export default function CarritoDrawer({ abierto, onCerrar, carrito, moneda, onCambiar, onQuitar }) {
+export default function CarritoDrawer({ abierto, onCerrar, carrito, moneda, onCambiar, onQuitar, onVaciar, descartados = [], onCerrarAviso }) {
   const [nombre, setNombre] = useState("");
   const [usuarioRoblox, setUsuarioRoblox] = useState("");
   const [intentado, setIntentado] = useState(false);
+  const [confirmandoVaciar, setConfirmandoVaciar] = useState(false);
+  // Carrito y moneda con los que se abrió WhatsApp. Si el cliente cambia algo después, el aviso desaparece.
+  const [enviado, setEnviado] = useState(null);
+  const pedidoIniciado = enviado?.carrito === carrito && enviado?.moneda === moneda && !carrito.vacio;
 
   useEffect(() => {
-    if (!abierto) return;
+    if (!abierto) {
+      // Al cerrar el drawer se descarta una confirmación pendiente.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setConfirmandoVaciar(false);
+      return;
+    }
     const alTeclear = (e) => e.key === "Escape" && onCerrar();
     document.addEventListener("keydown", alTeclear);
     const previo = document.body.style.overflow;
@@ -28,8 +37,9 @@ export default function CarritoDrawer({ abierto, onCerrar, carrito, moneda, onCa
     setIntentado(true);
     if (nombre.trim() === "" || carrito.vacio) return;
     try {
-      const url = new PedidoWhatsApp({ carrito, nombre, usuarioRoblox }).url();
+      const url = new PedidoWhatsApp({ carrito, nombre, usuarioRoblox, moneda }).url();
       window.open(url, "_blank", "noopener,noreferrer");
+      setEnviado({ carrito, moneda });
     } catch (err) {
       alert(err.message);
     }
@@ -70,6 +80,50 @@ export default function CarritoDrawer({ abierto, onCerrar, carrito, moneda, onCa
         </div>
 
         <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
+          {descartados.length > 0 && (
+            <div role="status" className="flex items-start gap-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10 p-3 text-xs text-yellow-200">
+              <p className="flex-1">
+                Quitamos de tu carrito productos que ya no están disponibles: {descartados.join(", ")}.
+              </p>
+              <button type="button" onClick={onCerrarAviso} aria-label="Cerrar aviso" className="text-yellow-200/70 hover:text-yellow-100">
+                ✕
+              </button>
+            </div>
+          )}
+          {!carrito.vacio && (
+            <div className="flex items-center justify-end gap-2 text-xs">
+              {confirmandoVaciar ? (
+                <>
+                  <span className="text-suave">¿Vaciar todo el carrito?</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onVaciar();
+                      setConfirmandoVaciar(false);
+                    }}
+                    className="rounded-md bg-red-500/90 px-2.5 py-1 font-bold text-white hover:bg-red-500"
+                  >
+                    Sí, vaciar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmandoVaciar(false)}
+                    className="rounded-md bg-borde px-2.5 py-1 font-semibold hover:bg-fondo"
+                  >
+                    Cancelar
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setConfirmandoVaciar(true)}
+                  className="font-semibold text-suave underline-offset-2 transition hover:text-red-400 hover:underline"
+                >
+                  Vaciar carrito
+                </button>
+              )}
+            </div>
+          )}
           {carrito.vacio ? (
             <p className="py-16 text-center text-sm text-suave">Tu carrito está vacío.</p>
           ) : (
@@ -152,13 +206,42 @@ export default function CarritoDrawer({ abierto, onCerrar, carrito, moneda, onCa
             </span>
           </div>
 
-          <button
-            type="submit"
-            disabled={carrito.vacio}
-            className="h-12 w-full rounded-lg bg-acento font-extrabold text-fondo shadow-[0_0_20px_rgba(0,230,57,0.3)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
-          >
-            Pedir por WhatsApp
-          </button>
+          {pedidoIniciado ? (
+            <div role="status" className="space-y-3 rounded-lg border border-acento/50 bg-acento/10 p-3">
+              <p className="text-sm font-bold text-acento">✓ Pedido iniciado en WhatsApp</p>
+              <p className="text-xs text-suave">
+                Envía el mensaje en el chat para confirmar tu pedido. Cuando lo hayas enviado, puedes vaciar el carrito.
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="submit"
+                  className="h-11 rounded-lg border border-acento text-sm font-bold text-acento transition hover:bg-acento/10"
+                >
+                  Abrir WhatsApp de nuevo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onVaciar();
+                    setEnviado(null);
+                    setIntentado(false);
+                    onCerrar();
+                  }}
+                  className="h-11 rounded-lg bg-acento text-sm font-extrabold text-fondo transition hover:brightness-110"
+                >
+                  Vaciar carrito
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="submit"
+              disabled={carrito.vacio}
+              className="h-12 w-full rounded-lg bg-acento font-extrabold text-fondo shadow-[0_0_20px_rgba(0,230,57,0.3)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
+            >
+              Pedir por WhatsApp
+            </button>
+          )}
         </form>
       </aside>
     </>

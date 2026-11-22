@@ -1,11 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { Carrito } from "@/src/domain/Carrito";
-import { MONEDA_DEFECTO } from "@/src/domain/monedas";
+import { monedaPorPais } from "@/src/domain/monedas";
+import { normalizarTexto } from "@/src/domain/texto";
 import Navbar from "@/src/components/Navbar";
 import ProductoCard from "@/src/components/ProductoCard";
 import CarritoDrawer from "@/src/components/CarritoDrawer";
+import WhatsAppFlotante, { ICONO_WHATSAPP, MENSAJE_WHATSAPP } from "@/src/components/WhatsAppFlotante";
 
 const FILTROS = [
   { id: "todos", etiqueta: "Todos", coincide: () => true },
@@ -15,23 +18,55 @@ const FILTROS = [
   { id: "skin", etiqueta: "Skin", coincide: (p) => p.categoria === "Skin" },
 ];
 
-export default function TiendaClient({ productos }) {
+const NUMERO_WHATSAPP = String(process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "").replace(/\D/g, "");
+
+const REDES = [
+  ...(NUMERO_WHATSAPP
+    ? [
+        {
+          nombre: "WhatsApp",
+          url: `https://wa.me/${NUMERO_WHATSAPP}?text=${encodeURIComponent(MENSAJE_WHATSAPP)}`,
+          icono: ICONO_WHATSAPP,
+        },
+      ]
+    : []),
+  {
+    nombre: "TikTok",
+    url: "https://www.tiktok.com/@yuan_blox_fruits",
+    icono:
+      "M19.6 6.7a4.8 4.8 0 0 1-3.8-4.2V2h-3.4v13.4a2.9 2.9 0 1 1-2-2.8V9.1a6.3 6.3 0 1 0 5.4 6.3V9a8.2 8.2 0 0 0 4.8 1.5V7.1a4.8 4.8 0 0 1-1-.4z",
+  },
+  {
+    nombre: "Instagram",
+    url: "https://www.instagram.com/juan_d_ok2/",
+    icono:
+      "M12 2.2c3.2 0 3.6 0 4.8.1 3.3.1 4.8 1.7 4.9 4.9.1 1.3.1 1.6.1 4.8s0 3.6-.1 4.8c-.1 3.2-1.7 4.8-4.9 4.9-1.3.1-1.6.1-4.8.1s-3.6 0-4.8-.1c-3.3-.1-4.8-1.7-4.9-4.9C2.2 15.6 2.2 15.2 2.2 12s0-3.6.1-4.8C2.4 3.9 4 2.4 7.2 2.3 8.4 2.2 8.8 2.2 12 2.2zM12 0C8.7 0 8.3 0 7.1.1 2.7.3.3 2.7.1 7.1 0 8.3 0 8.7 0 12s0 3.7.1 4.9c.2 4.4 2.6 6.8 7 7C8.3 24 8.7 24 12 24s3.7 0 4.9-.1c4.4-.2 6.8-2.6 7-7 .1-1.2.1-1.6.1-4.9s0-3.7-.1-4.9c-.2-4.4-2.6-6.8-7-7C15.7 0 15.3 0 12 0zm0 5.8a6.2 6.2 0 1 0 0 12.4 6.2 6.2 0 0 0 0-12.4zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.4-11.8a1.4 1.4 0 1 0 0 2.9 1.4 1.4 0 0 0 0-2.9z",
+  },
+];
+
+export default function TiendaClient({ productos, errorCatalogo = false, pais = "" }) {
   const [items, setItems] = useState([]);
   const [hidratado, setHidratado] = useState(false);
+  const [descartados, setDescartados] = useState([]);
   const [busqueda, setBusqueda] = useState("");
   const [filtro, setFiltro] = useState("todos");
-  const [moneda, setMoneda] = useState(MONEDA_DEFECTO);
+  const [moneda, setMoneda] = useState(() => monedaPorPais(pais));
   const [drawerAbierto, setDrawerAbierto] = useState(false);
 
   const carrito = useMemo(() => new Carrito(items), [items]);
 
   // Carga el carrito persistido (solo en el cliente, tras hidratar).
+  // Los precios y la disponibilidad guardados pueden estar desactualizados: se concilian
+  // con el catálogo vigente. Si el catálogo no cargó, no se toca el carrito.
   useEffect(() => {
     // localStorage solo existe en el cliente: se lee tras hidratar para no romper el SSR.
+    const guardado = Carrito.cargar();
+    if (!errorCatalogo) guardado.reconciliar(productos);
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setItems(Carrito.cargar().items);
+    setItems(guardado.items);
+    if (guardado.descartados?.length) setDescartados(guardado.descartados);
     setHidratado(true);
-  }, []);
+  }, [productos, errorCatalogo]);
 
   useEffect(() => {
     if (hidratado) carrito.guardar();
@@ -42,12 +77,13 @@ export default function TiendaClient({ productos }) {
   }, [items]);
   const cambiar = (id, delta) => setItems(new Carrito(items).cambiarCantidad(id, delta).items);
   const quitar = (id) => setItems(new Carrito(items).quitar(id).items);
+  const vaciar = () => setItems([]);
   const cerrar = useCallback(() => setDrawerAbierto(false), []);
 
   const visibles = useMemo(() => {
     const { coincide } = FILTROS.find((f) => f.id === filtro);
-    const q = busqueda.trim().toLowerCase();
-    return productos.filter((p) => coincide(p) && p.nombre.toLowerCase().includes(q));
+    const q = normalizarTexto(busqueda);
+    return productos.filter((p) => coincide(p) && normalizarTexto(p.nombre).includes(q));
   }, [productos, filtro, busqueda]);
 
   return (
@@ -90,7 +126,21 @@ export default function TiendaClient({ productos }) {
           {visibles.length} artículos disponibles
         </p>
 
-        {visibles.length === 0 ? (
+        {errorCatalogo ? (
+          <div role="alert" className="py-24 text-center">
+            <p className="text-sm font-semibold text-texto">No pudimos cargar el catálogo.</p>
+            <p className="mt-1 text-sm text-suave">Intenta de nuevo en unos minutos.</p>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="mt-4 rounded-lg border border-acento px-4 py-2 text-sm font-bold text-acento transition hover:bg-acento hover:text-fondo"
+            >
+              Reintentar
+            </button>
+          </div>
+        ) : productos.length === 0 ? (
+          <p className="py-24 text-center text-sm text-suave">Aún no hay productos disponibles. ¡Vuelve pronto!</p>
+        ) : visibles.length === 0 ? (
           <p className="py-24 text-center text-sm text-suave">No encontramos productos con ese criterio.</p>
         ) : (
           <div className="mt-5 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
@@ -102,8 +152,31 @@ export default function TiendaClient({ productos }) {
       </main>
 
       <footer className="border-t border-borde px-4 py-6 text-center text-xs text-suave">
+        <nav aria-label="Redes sociales" className="mb-4 flex flex-wrap items-center justify-center gap-3">
+          {REDES.map((r) => (
+            <a
+              key={r.nombre}
+              href={r.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Yuan Store en ${r.nombre}`}
+              className="flex items-center gap-2 rounded-lg border border-borde bg-superficie px-3 py-2 text-sm font-semibold text-texto transition hover:border-acento hover:text-acento hover:shadow-[0_0_14px_rgba(0,230,57,0.2)]"
+            >
+              <svg viewBox="0 0 24 24" className="size-4 fill-current" aria-hidden>
+                <path d={r.icono} />
+              </svg>
+              {r.nombre}
+            </a>
+          ))}
+        </nav>
+        <Link href="/terminos" className="mb-2 inline-block font-semibold underline-offset-2 hover:text-acento hover:underline">
+          Términos y política de reembolso
+        </Link>
+        <br />
         © {new Date().getFullYear()} Yuan Store. Todos los derechos reservados.
       </footer>
+
+      <WhatsAppFlotante />
 
       <CarritoDrawer
         abierto={drawerAbierto}
@@ -112,6 +185,9 @@ export default function TiendaClient({ productos }) {
         moneda={moneda}
         onCambiar={cambiar}
         onQuitar={quitar}
+        onVaciar={vaciar}
+        descartados={descartados}
+        onCerrarAviso={() => setDescartados([])}
       />
     </>
   );

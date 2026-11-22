@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { formatearPrecio } from "@/src/domain/monedas";
 import {
   TIPOS_FRUTA,
@@ -28,8 +28,25 @@ export default function ProductoCard({ producto, moneda, onAgregar }) {
   // Las modalidades bloqueadas no se muestran; si queda una sola, se ve sola para que el cliente sepa cuál es.
   const tiposVisibles = TIPOS_FRUTA.filter((t) => varianteDisponible(producto, t.id));
 
+  // Feedback visual al agregar: `pulso` cambia en cada clic para reiniciar la animación.
+  const [pulso, setPulso] = useState(0);
+  const temporizador = useRef(null);
+  const agregado = pulso > 0;
+  useEffect(() => () => clearTimeout(temporizador.current), []);
+
+  function agregar() {
+    onAgregar(aItemCarrito(producto, tipoActivo));
+    setPulso((n) => n + 1);
+    clearTimeout(temporizador.current);
+    temporizador.current = setTimeout(() => setPulso(0), 1100);
+  }
+
   return (
-    <article className="group flex flex-col rounded-xl border border-borde bg-superficie p-2.5 transition hover:border-acento hover:shadow-[0_0_18px_rgba(0,230,57,0.18)] sm:p-3">
+    <article
+      className={`group flex flex-col rounded-xl border bg-superficie p-2.5 transition hover:border-acento hover:shadow-[0_0_18px_rgba(0,230,57,0.18)] sm:p-3 ${
+        agregado ? "border-acento shadow-[0_0_18px_rgba(0,230,57,0.25)]" : "border-borde"
+      }`}
+    >
       <div className="relative grid aspect-square place-items-center overflow-hidden rounded-lg bg-fondo">
         <span
           className={`absolute left-2 top-2 z-10 rounded px-1.5 py-0.5 text-[10px] font-bold tracking-wide ${
@@ -84,14 +101,11 @@ export default function ProductoCard({ producto, moneda, onAgregar }) {
       )}
 
       {!tieneVariantes && !esFruta(producto) && (
-        <button
-          type="button"
-          disabled={agotado}
-          onClick={() => onAgregar(aItemCarrito(producto, tipoActivo))}
-          className="mt-2 w-full rounded-md border border-acento/40 bg-fondo py-1 text-[11px] font-bold text-acento transition hover:bg-acento hover:text-fondo disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-fondo disabled:hover:text-acento"
-        >
-          {agotado ? "AGOTADO" : "Agregar al carrito"}
-        </button>
+        <div className="mt-2 grid grid-cols-1 rounded-md bg-fondo p-0.5">
+          <span className="rounded bg-acento py-1 text-center text-[11px] font-bold capitalize text-fondo">
+            {producto.categoria}
+          </span>
+        </div>
       )}
 
       <div className="mt-auto flex items-center justify-between gap-2 pt-3">
@@ -105,12 +119,20 @@ export default function ProductoCard({ producto, moneda, onAgregar }) {
         <button
           type="button"
           disabled={agotado}
-          onClick={() => onAgregar(aItemCarrito(producto, tipoActivo))}
+          onClick={agregar}
           aria-label={`Agregar ${producto.nombre}${tieneVariantes ? ` (${tipoActivo})` : ""} al carrito`}
-          className="grid size-8 shrink-0 place-items-center rounded-md bg-borde text-lg font-bold leading-none text-texto transition hover:bg-acento hover:text-fondo disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-borde disabled:hover:text-texto"
+          className={`grid size-8 shrink-0 place-items-center rounded-md text-lg font-bold leading-none transition hover:bg-acento hover:text-fondo disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-borde disabled:hover:text-texto ${
+            agregado ? "bg-acento text-fondo shadow-[0_0_14px_rgba(0,230,57,0.6)]" : "bg-borde text-texto"
+          }`}
         >
-          +
+          {/* `key` reinicia el rebote en cada clic sin remontar el botón (no pierde el foco). */}
+          <span key={pulso} className={`inline-block ${agregado ? "animar-rebote" : ""}`} aria-hidden>
+            {agregado ? "✓" : "+"}
+          </span>
         </button>
+        <span className="sr-only" aria-live="polite">
+          {agregado ? `${producto.nombre} agregado al carrito` : ""}
+        </span>
       </div>
     </article>
   );
