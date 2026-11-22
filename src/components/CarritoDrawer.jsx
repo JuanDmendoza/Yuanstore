@@ -4,16 +4,22 @@ import { useEffect, useState } from "react";
 import { PedidoWhatsApp } from "@/src/domain/PedidoWhatsApp";
 import { formatearMonto } from "@/src/domain/monedas";
 
-export default function CarritoDrawer({ abierto, onCerrar, carrito, moneda, onCambiar, onQuitar, onVaciar }) {
+export default function CarritoDrawer({ abierto, onCerrar, carrito, moneda, onCambiar, onQuitar, onVaciar, descartados = [], onCerrarAviso }) {
   const [nombre, setNombre] = useState("");
   const [usuarioRoblox, setUsuarioRoblox] = useState("");
   const [intentado, setIntentado] = useState(false);
+  const [confirmandoVaciar, setConfirmandoVaciar] = useState(false);
   // Carrito y moneda con los que se abrió WhatsApp. Si el cliente cambia algo después, el aviso desaparece.
   const [enviado, setEnviado] = useState(null);
   const pedidoIniciado = enviado?.carrito === carrito && enviado?.moneda === moneda && !carrito.vacio;
 
   useEffect(() => {
-    if (!abierto) return;
+    if (!abierto) {
+      // Al cerrar el drawer se descarta una confirmación pendiente.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setConfirmandoVaciar(false);
+      return;
+    }
     const alTeclear = (e) => e.key === "Escape" && onCerrar();
     document.addEventListener("keydown", alTeclear);
     const previo = document.body.style.overflow;
@@ -74,6 +80,50 @@ export default function CarritoDrawer({ abierto, onCerrar, carrito, moneda, onCa
         </div>
 
         <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
+          {descartados.length > 0 && (
+            <div role="status" className="flex items-start gap-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10 p-3 text-xs text-yellow-200">
+              <p className="flex-1">
+                Quitamos de tu carrito productos que ya no están disponibles: {descartados.join(", ")}.
+              </p>
+              <button type="button" onClick={onCerrarAviso} aria-label="Cerrar aviso" className="text-yellow-200/70 hover:text-yellow-100">
+                ✕
+              </button>
+            </div>
+          )}
+          {!carrito.vacio && (
+            <div className="flex items-center justify-end gap-2 text-xs">
+              {confirmandoVaciar ? (
+                <>
+                  <span className="text-suave">¿Vaciar todo el carrito?</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onVaciar();
+                      setConfirmandoVaciar(false);
+                    }}
+                    className="rounded-md bg-red-500/90 px-2.5 py-1 font-bold text-white hover:bg-red-500"
+                  >
+                    Sí, vaciar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmandoVaciar(false)}
+                    className="rounded-md bg-borde px-2.5 py-1 font-semibold hover:bg-fondo"
+                  >
+                    Cancelar
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setConfirmandoVaciar(true)}
+                  className="font-semibold text-suave underline-offset-2 transition hover:text-red-400 hover:underline"
+                >
+                  Vaciar carrito
+                </button>
+              )}
+            </div>
+          )}
           {carrito.vacio ? (
             <p className="py-16 text-center text-sm text-suave">Tu carrito está vacío.</p>
           ) : (
