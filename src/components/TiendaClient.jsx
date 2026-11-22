@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Carrito } from "@/src/domain/Carrito";
 import { MONEDA_DEFECTO } from "@/src/domain/monedas";
+import { normalizarTexto } from "@/src/domain/texto";
 import Navbar from "@/src/components/Navbar";
 import ProductoCard from "@/src/components/ProductoCard";
 import CarritoDrawer from "@/src/components/CarritoDrawer";
@@ -15,7 +16,7 @@ const FILTROS = [
   { id: "skin", etiqueta: "Skin", coincide: (p) => p.categoria === "Skin" },
 ];
 
-export default function TiendaClient({ productos }) {
+export default function TiendaClient({ productos, errorCatalogo = false }) {
   const [items, setItems] = useState([]);
   const [hidratado, setHidratado] = useState(false);
   const [busqueda, setBusqueda] = useState("");
@@ -42,12 +43,13 @@ export default function TiendaClient({ productos }) {
   }, [items]);
   const cambiar = (id, delta) => setItems(new Carrito(items).cambiarCantidad(id, delta).items);
   const quitar = (id) => setItems(new Carrito(items).quitar(id).items);
+  const vaciar = () => setItems([]);
   const cerrar = useCallback(() => setDrawerAbierto(false), []);
 
   const visibles = useMemo(() => {
     const { coincide } = FILTROS.find((f) => f.id === filtro);
-    const q = busqueda.trim().toLowerCase();
-    return productos.filter((p) => coincide(p) && p.nombre.toLowerCase().includes(q));
+    const q = normalizarTexto(busqueda);
+    return productos.filter((p) => coincide(p) && normalizarTexto(p.nombre).includes(q));
   }, [productos, filtro, busqueda]);
 
   return (
@@ -90,7 +92,21 @@ export default function TiendaClient({ productos }) {
           {visibles.length} artículos disponibles
         </p>
 
-        {visibles.length === 0 ? (
+        {errorCatalogo ? (
+          <div role="alert" className="py-24 text-center">
+            <p className="text-sm font-semibold text-texto">No pudimos cargar el catálogo.</p>
+            <p className="mt-1 text-sm text-suave">Intenta de nuevo en unos minutos.</p>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="mt-4 rounded-lg border border-acento px-4 py-2 text-sm font-bold text-acento transition hover:bg-acento hover:text-fondo"
+            >
+              Reintentar
+            </button>
+          </div>
+        ) : productos.length === 0 ? (
+          <p className="py-24 text-center text-sm text-suave">Aún no hay productos disponibles. ¡Vuelve pronto!</p>
+        ) : visibles.length === 0 ? (
           <p className="py-24 text-center text-sm text-suave">No encontramos productos con ese criterio.</p>
         ) : (
           <div className="mt-5 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
@@ -112,6 +128,7 @@ export default function TiendaClient({ productos }) {
         moneda={moneda}
         onCambiar={cambiar}
         onQuitar={quitar}
+        onVaciar={vaciar}
       />
     </>
   );

@@ -4,10 +4,13 @@ import { useEffect, useState } from "react";
 import { PedidoWhatsApp } from "@/src/domain/PedidoWhatsApp";
 import { formatearMonto } from "@/src/domain/monedas";
 
-export default function CarritoDrawer({ abierto, onCerrar, carrito, moneda, onCambiar, onQuitar }) {
+export default function CarritoDrawer({ abierto, onCerrar, carrito, moneda, onCambiar, onQuitar, onVaciar }) {
   const [nombre, setNombre] = useState("");
   const [usuarioRoblox, setUsuarioRoblox] = useState("");
   const [intentado, setIntentado] = useState(false);
+  // Carrito y moneda con los que se abrió WhatsApp. Si el cliente cambia algo después, el aviso desaparece.
+  const [enviado, setEnviado] = useState(null);
+  const pedidoIniciado = enviado?.carrito === carrito && enviado?.moneda === moneda && !carrito.vacio;
 
   useEffect(() => {
     if (!abierto) return;
@@ -28,8 +31,9 @@ export default function CarritoDrawer({ abierto, onCerrar, carrito, moneda, onCa
     setIntentado(true);
     if (nombre.trim() === "" || carrito.vacio) return;
     try {
-      const url = new PedidoWhatsApp({ carrito, nombre, usuarioRoblox }).url();
+      const url = new PedidoWhatsApp({ carrito, nombre, usuarioRoblox, moneda }).url();
       window.open(url, "_blank", "noopener,noreferrer");
+      setEnviado({ carrito, moneda });
     } catch (err) {
       alert(err.message);
     }
@@ -152,13 +156,42 @@ export default function CarritoDrawer({ abierto, onCerrar, carrito, moneda, onCa
             </span>
           </div>
 
-          <button
-            type="submit"
-            disabled={carrito.vacio}
-            className="h-12 w-full rounded-lg bg-acento font-extrabold text-fondo shadow-[0_0_20px_rgba(0,230,57,0.3)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
-          >
-            Pedir por WhatsApp
-          </button>
+          {pedidoIniciado ? (
+            <div role="status" className="space-y-3 rounded-lg border border-acento/50 bg-acento/10 p-3">
+              <p className="text-sm font-bold text-acento">✓ Pedido iniciado en WhatsApp</p>
+              <p className="text-xs text-suave">
+                Envía el mensaje en el chat para confirmar tu pedido. Cuando lo hayas enviado, puedes vaciar el carrito.
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="submit"
+                  className="h-11 rounded-lg border border-acento text-sm font-bold text-acento transition hover:bg-acento/10"
+                >
+                  Abrir WhatsApp de nuevo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onVaciar();
+                    setEnviado(null);
+                    setIntentado(false);
+                    onCerrar();
+                  }}
+                  className="h-11 rounded-lg bg-acento text-sm font-extrabold text-fondo transition hover:brightness-110"
+                >
+                  Vaciar carrito
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="submit"
+              disabled={carrito.vacio}
+              className="h-12 w-full rounded-lg bg-acento font-extrabold text-fondo shadow-[0_0_20px_rgba(0,230,57,0.3)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
+            >
+              Pedir por WhatsApp
+            </button>
+          )}
         </form>
       </aside>
     </>

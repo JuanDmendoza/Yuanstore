@@ -1,11 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MONEDAS, formatearMonto } from "@/src/domain/monedas";
 
 export default function Navbar({ busqueda, onBusqueda, moneda, onMoneda, carrito, onAbrirCarrito }) {
   const [menuMoneda, setMenuMoneda] = useState(false);
+  const selectorMoneda = useRef(null);
+
+  // Cierra el menú de monedas al hacer clic/tocar fuera de él o al pulsar Escape.
+  useEffect(() => {
+    if (!menuMoneda) return;
+    const alPulsarFuera = (e) => {
+      if (!selectorMoneda.current?.contains(e.target)) setMenuMoneda(false);
+    };
+    const alTeclear = (e) => e.key === "Escape" && setMenuMoneda(false);
+    document.addEventListener("pointerdown", alPulsarFuera);
+    document.addEventListener("keydown", alTeclear);
+    return () => {
+      document.removeEventListener("pointerdown", alPulsarFuera);
+      document.removeEventListener("keydown", alTeclear);
+    };
+  }, [menuMoneda]);
 
   const buscador = (
     <label className="relative block w-full">
@@ -48,7 +64,7 @@ export default function Navbar({ busqueda, onBusqueda, moneda, onMoneda, carrito
 
         {/* Derecha */}
         <div className="ml-auto flex items-center gap-2">
-          <div className="relative">
+          <div ref={selectorMoneda} className="relative">
             <button
               type="button"
               onClick={() => setMenuMoneda((v) => !v)}
@@ -97,7 +113,13 @@ export default function Navbar({ busqueda, onBusqueda, moneda, onMoneda, carrito
               <circle cx="18" cy="20" r="1.5" />
               <path d="M2 3h3l2.7 12.4a1 1 0 0 0 1 .8h9a1 1 0 0 0 1-.8L20.5 7H6" />
             </svg>
-            <span className="grid min-w-5 place-items-center rounded-full bg-acento px-1.5 text-xs font-extrabold text-fondo">
+            {/* `key` reinicia el rebote cada vez que cambia la cantidad. */}
+            <span
+              key={carrito.cantidadTotal}
+              className={`grid min-w-5 place-items-center rounded-full bg-acento px-1.5 text-xs font-extrabold text-fondo ${
+                carrito.vacio ? "" : "animar-rebote"
+              }`}
+            >
               {carrito.cantidadTotal}
             </span>
             {!carrito.vacio && (

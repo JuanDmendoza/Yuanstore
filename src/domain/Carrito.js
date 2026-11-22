@@ -88,7 +88,10 @@ export class Carrito {
       const raw = storage?.getItem(Carrito.STORAGE_KEY);
       const items = raw ? JSON.parse(raw) : [];
       const validos = Array.isArray(items)
-        ? items.filter((i) => i && i.id && Number.isFinite(i.precio) && i.cantidad > 0)
+        ? items.filter(
+            // Los `demo-*` venían del antiguo catálogo de muestra: no son productos reales.
+            (i) => i && i.id && !String(i.id).startsWith("demo-") && Number.isFinite(i.precio) && i.cantidad > 0
+          )
         : [];
       return new Carrito(validos);
     } catch {
