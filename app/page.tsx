@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import TiendaClient from "@/src/components/TiendaClient";
@@ -13,7 +14,9 @@ async function Catalogo() {
     console.error("No se pudo leer el catálogo de MongoDB:", err);
     errorCatalogo = true;
   }
-  return <TiendaClient productos={productos} errorCatalogo={errorCatalogo} />;
+  // Vercel envía el país (ISO-2) del visitante; sirve para preseleccionar la moneda.
+  const pais = (await headers()).get("x-vercel-ip-country") ?? "";
+  return <TiendaClient productos={productos} errorCatalogo={errorCatalogo} pais={pais} />;
 }
 
 export default function Home() {

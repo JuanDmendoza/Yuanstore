@@ -13,6 +13,20 @@ export const MONEDAS = [
 
 export const MONEDA_DEFECTO = MONEDAS[0];
 
+const MONEDA_POR_PAIS = { CO: "COP", MX: "MXN", PE: "PEN" };
+
+/**
+ * Moneda inicial según el país (código ISO de 2 letras, ej. el de `x-vercel-ip-country`).
+ * Colombia, México y Perú usan la suya; cualquier otro país paga en USD.
+ * Sin dato de país (desarrollo local, sin cabecera) se usa la moneda por defecto.
+ */
+export function monedaPorPais(pais) {
+  const codigo = String(pais ?? "").trim().toUpperCase();
+  if (!codigo) return MONEDA_DEFECTO;
+  const objetivo = MONEDA_POR_PAIS[codigo] ?? "USD";
+  return MONEDAS.find((m) => m.codigo === objetivo) ?? MONEDA_DEFECTO;
+}
+
 /** Monedas distintas a la base (COP), cuyo precio se puede fijar a mano. */
 export const MONEDAS_EXTRA = MONEDAS.filter((m) => m !== MONEDA_DEFECTO);
 
