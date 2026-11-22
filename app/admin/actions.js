@@ -4,8 +4,10 @@ import { revalidatePath } from "next/cache";
 import { MONEDAS_EXTRA } from "@/src/domain/monedas";
 import { ProductoError, ProductoService } from "@/src/services/ProductoService";
 
-// TODO(auth): estas acciones son endpoints públicos. Cuando se agregue el login
-// del administrador, verificar la sesión al inicio de cada una.
+import { rechazarSinSesion } from "@/src/lib/adminAuth";
+
+// Cada acción verifica la sesión del admin por su cuenta (además del proxy): las Server
+// Actions son endpoints POST públicos y no deben depender solo de la ruta.
 
 function refrescar() {
   revalidatePath("/");
@@ -20,6 +22,8 @@ function mensajeDeError(err) {
 
 /** Crea o edita (si viene `id`) un producto. Pensada para `useActionState`. */
 export async function guardarProductoAction(_estado, formData) {
+  const sinSesion = await rechazarSinSesion();
+  if (sinSesion) return sinSesion;
   const id = String(formData.get("id") ?? "");
   const datos = {
     nombre: formData.get("nombre"),
@@ -32,6 +36,8 @@ export async function guardarProductoAction(_estado, formData) {
     preciosFisica: Object.fromEntries(
       MONEDAS_EXTRA.map(({ codigo }) => [codigo, formData.get(`fisica_${codigo}`)])
     ),
+    permaDisponible: formData.get("permaDisponible") === "on",
+    fisicaDisponible: formData.get("fisicaDisponible") === "on",
     bestSeller: formData.get("bestSeller") === "on",
     disponible: formData.get("disponible") === "on",
   };
@@ -49,6 +55,8 @@ export async function guardarProductoAction(_estado, formData) {
 }
 
 export async function cambiarDisponibleAction(id, disponible) {
+  const sinSesion = await rechazarSinSesion();
+  if (sinSesion) return sinSesion;
   try {
     await new ProductoService().cambiarDisponible(id, disponible);
   } catch (err) {
@@ -59,6 +67,8 @@ export async function cambiarDisponibleAction(id, disponible) {
 }
 
 export async function eliminarProductoAction(id) {
+  const sinSesion = await rechazarSinSesion();
+  if (sinSesion) return sinSesion;
   try {
     await new ProductoService().eliminar(id);
   } catch (err) {

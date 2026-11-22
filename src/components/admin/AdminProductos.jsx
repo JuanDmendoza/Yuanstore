@@ -2,14 +2,27 @@
 
 import { useCallback, useState, useTransition } from "react";
 import { cambiarDisponibleAction, eliminarProductoAction } from "@/app/admin/actions";
+import { logoutAction } from "@/app/admin/auth";
+import { CATEGORIAS } from "@/src/domain/categorias";
 import { MONEDAS, formatearPrecio } from "@/src/domain/monedas";
 import { esFruta } from "@/src/domain/variantes";
 import ProductoForm from "./ProductoForm";
 
+/** Minúsculas y sin acentos, para que "física" y "fisica" coincidan. */
+const normalizar = (t) =>
+  String(t ?? "")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .trim();
+
 /** Filas de precio de un producto: las frutas muestran Perma y, si existe, Física. */
 function variantes(p) {
   if (!esFruta(p)) return [{ etiqueta: null, datos: p }];
-  return [{ etiqueta: "Perma", datos: p }, ...(p.fisica ? [{ etiqueta: "Física", datos: p.fisica }] : [])];
+  return [
+    { etiqueta: "Perma", datos: p, bloqueada: p.permaDisponible === false },
+    ...(p.fisica ? [{ etiqueta: "Física", datos: p.fisica, bloqueada: p.fisica.disponible === false }] : []),
+  ];
 }
 
 export default function AdminProductos({ productos }) {
@@ -17,6 +30,14 @@ export default function AdminProductos({ productos }) {
   const [edicion, setEdicion] = useState(null);
   const [error, setError] = useState(null);
   const [pendiente, startTransition] = useTransition();
+
+  const [busqueda, setBusqueda] = useState("");
+  const [filtro, setFiltro] = useState("Todos");
+
+  const termino = normalizar(busqueda);
+  const visibles = productos.filter(
+    (p) => (filtro === "Todos" || p.categoria === filtro) && normalizar(p.nombre).includes(termino)
+  );
 
   const cerrar = useCallback(() => setEdicion(null), []);
 
@@ -40,15 +61,25 @@ export default function AdminProductos({ productos }) {
           <h1 className="font-display text-2xl font-bold">Productos</h1>
           <p className="text-sm text-suave">{productos.length} en el catálogo</p>
         </div>
-        {!edicion && (
-          <button
-            type="button"
-            onClick={() => setEdicion({})}
-            className="rounded-lg bg-acento px-4 py-2 text-sm font-bold text-fondo transition hover:brightness-110"
-          >
-            + Nuevo producto
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {!edicion && (
+            <button
+              type="button"
+              onClick={() => setEdicion({})}
+              className="rounded-lg bg-acento px-4 py-2 text-sm font-bold text-fondo transition hover:brightness-110"
+            >
+              + Nuevo producto
+            </button>
+          )}
+          <form action={logoutAction}>
+            <button
+              type="submit"
+              className="rounded-lg border border-borde px-3 py-2 text-sm text-suave transition hover:text-texto"
+            >
+              Salir
+            </button>
+          </form>
+        </div>
       </header>
 
       {edicion && (
@@ -68,11 +99,46 @@ export default function AdminProductos({ productos }) {
         </p>
       )}
 
+      {productos.length > 0 && (
+        <div className="mt-5 grid gap-3">
+          <input
+            type="search"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar producto..."
+            aria-label="Buscar producto"
+            className="w-full rounded-lg border border-borde bg-superficie px-3 py-2 text-sm text-texto outline-none transition placeholder:text-suave/60 focus:border-acento"
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            {["Todos", ...CATEGORIAS].map((c) => {
+              const activo = filtro === c;
+              return (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setFiltro(c)}
+                  className={`rounded-full border px-3.5 py-1 text-xs font-semibold transition ${
+                    activo
+                      ? "border-acento bg-acento text-fondo"
+                      : "border-borde text-suave hover:border-acento hover:text-texto"
+                  }`}
+                >
+                  {c}
+                </button>
+              );
+            })}
+            <span className="ml-auto text-xs text-suave">{visibles.length} resultados</span>
+          </div>
+        </div>
+      )}
+
       {productos.length === 0 ? (
         <p className="mt-10 text-center text-sm text-suave">Aún no hay productos. Crea el primero.</p>
+      ) : visibles.length === 0 ? (
+        <p className="mt-10 text-center text-sm text-suave">Ningún producto coincide con la búsqueda.</p>
       ) : (
         <ul className={`mt-5 grid gap-2 ${pendiente ? "opacity-60" : ""}`}>
-          {productos.map((p) => (
+          {visibles.map((p) => (
             <li
               key={p.id}
               className="flex flex-wrap items-center gap-3 rounded-xl border border-borde bg-superficie p-3"
@@ -90,9 +156,13 @@ export default function AdminProductos({ productos }) {
                 <p className="truncate font-semibold">{p.nombre}</p>
                 <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-suave">
                   <span>{p.categoria}</span>
-                  {variantes(p).map(({ etiqueta, datos }) => (
-                    <span key={etiqueta ?? "unico"} className="flex flex-wrap items-center gap-x-2">
+                  {variantes(p).map(({ etiqueta, datos, bloqueada }) => (
+                    <span
+                      key={etiqueta ?? "unico"}
+                      className={`flex flex-wrap items-center gap-x-2 ${bloqueada ? "opacity-50" : ""}`}
+                    >
                       {etiqueta && <span className="font-semibold text-texto">{etiqueta}</span>}
+                      {bloqueada && <span className="font-bold text-red-300">BLOQUEADA</span>}
                       <span className="whitespace-nowrap font-bold text-acento">{formatearPrecio(datos)}</span>
                       {MONEDAS.slice(1).map((m) => (
                         <span key={m.codigo} className="whitespace-nowrap">
