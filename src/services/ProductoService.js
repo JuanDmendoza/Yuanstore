@@ -17,7 +17,7 @@ export class ProductoService {
   async listarDisponibles() {
     await connectDB();
     const docs = await Producto.find({ disponible: true })
-      .sort({ bestSeller: -1, categoria: 1, nombre: 1 })
+      .sort({ bestSeller: -1, precio: -1, nombre: 1 }) // Best Sellers primero; luego precio Perma de mayor a menor
       .lean();
     return docs.map((d) => this.serializar(d));
   }
@@ -88,7 +88,7 @@ export class ProductoService {
   // --- Internos ---------------------------------------------------------
 
   /** Normaliza y valida los campos de texto/número/booleanos de un producto. */
-  validar({ nombre, categoria, precio, precios, precioFisica, preciosFisica, bestSeller, disponible }) {
+  validar({ nombre, categoria, precio, precios, precioFisica, preciosFisica, bestSeller, disponible, permaDisponible, fisicaDisponible }) {
     const nombreLimpio = String(nombre ?? "").trim();
     if (!nombreLimpio) throw new ProductoError("El nombre es obligatorio");
     if (!CATEGORIAS.includes(categoria)) throw new ProductoError("Categoría inválida");
@@ -116,6 +116,9 @@ export class ProductoService {
       precios: preciosFijos,
       precioFisica: fisica,
       preciosFisica: fisicaFijos,
+      // El bloqueo por modalidad solo aplica a frutas.
+      permaDisponible: categoria === "Fruta" ? Boolean(permaDisponible) : true,
+      fisicaDisponible: categoria === "Fruta" ? Boolean(fisicaDisponible) : true,
       bestSeller: Boolean(bestSeller),
       disponible: Boolean(disponible),
     };
@@ -164,9 +167,15 @@ export class ProductoService {
       categoria: doc.categoria,
       precio: doc.precio,
       precios: this.mapaAObjeto(doc.precios),
+      permaDisponible: doc.permaDisponible !== false,
+      fisicaDisponible: doc.fisicaDisponible !== false,
       fisica:
         doc.categoria === "Fruta" && Number.isFinite(doc.precioFisica)
-          ? { precio: doc.precioFisica, precios: this.mapaAObjeto(doc.preciosFisica) }
+          ? {
+              precio: doc.precioFisica,
+              precios: this.mapaAObjeto(doc.preciosFisica),
+              disponible: doc.fisicaDisponible !== false,
+            }
           : null,
       bestSeller: Boolean(doc.bestSeller),
       disponible: doc.disponible !== false,

@@ -141,7 +141,7 @@ export default function ProductoForm({ producto, onListo, onCancelar }) {
             />
           )}
           <p className="-mt-1 text-[11px] text-suave">
-            Si MXN o PEN quedan vacíos o iguales al precio convertido, se mantiene la conversión automática desde COP.
+            Si MXN, PEN o USD quedan vacíos o iguales al precio convertido, se mantiene la conversión automática desde COP.
           </p>
           <div className="flex flex-wrap gap-5 text-sm">
             <label className="flex items-center gap-2">
@@ -153,6 +153,32 @@ export default function ProductoForm({ producto, onListo, onCancelar }) {
               />
               Best Seller
             </label>
+            {esFruta && (
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  name="permaDisponible"
+                  defaultChecked={producto?.permaDisponible ?? true}
+                  className="size-4 accent-acento"
+                />
+                Perma disponible
+              </label>
+            )}
+            {esFruta && (
+              <label
+                className="flex items-center gap-2"
+                title={precioFisica === "" ? "Pon un precio Física para venderla" : undefined}
+              >
+                <input
+                  type="checkbox"
+                  name="fisicaDisponible"
+                  defaultChecked={producto?.fisica?.disponible ?? producto?.fisicaDisponible ?? true}
+                  className="size-4 accent-acento"
+                />
+                Física disponible
+                {precioFisica === "" && <span className="text-[11px] text-suave">(falta precio Física)</span>}
+              </label>
+            )}
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"

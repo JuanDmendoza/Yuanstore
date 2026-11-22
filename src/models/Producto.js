@@ -13,6 +13,9 @@ const ProductoSchema = new mongoose.Schema(
     // Solo frutas: precio de la versión Física (COP) y sus precios por moneda. null = no se vende física.
     precioFisica: { type: Number, min: 0, default: null },
     preciosFisica: { type: Map, of: { type: Number, min: 0 }, default: {} },
+    // Solo frutas: permite bloquear una modalidad (sin stock) sin ocultar la otra.
+    permaDisponible: { type: Boolean, default: true },
+    fisicaDisponible: { type: Boolean, default: true },
     // La imagen vive en Cloudinary: aquí solo se guarda su URL optimizada.
     imagenUrl: { type: String, trim: true, default: "" },
     // Necesario solo para reemplazar/borrar la imagen en Cloudinary.
@@ -25,7 +28,7 @@ const ProductoSchema = new mongoose.Schema(
 
 // Con hot reload, `mongoose.models` conserva un modelo con el esquema antiguo y descarta
 // en silencio los campos nuevos (strict). Si falta un campo, se recompila el modelo.
-if (mongoose.models.Producto && !mongoose.models.Producto.schema.path("precioFisica")) {
+if (mongoose.models.Producto && !mongoose.models.Producto.schema.path("fisicaDisponible")) {
   mongoose.deleteModel("Producto");
 }
 
