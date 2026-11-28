@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Carrito } from "@/src/domain/Carrito";
 import { monedaPorPais } from "@/src/domain/monedas";
+import { PedidoWhatsApp } from "@/src/domain/PedidoWhatsApp";
 import { normalizarTexto } from "@/src/domain/texto";
 import Navbar from "@/src/components/Navbar";
 import ProductoCard from "@/src/components/ProductoCard";
@@ -79,6 +80,12 @@ export default function TiendaClient({ productos, errorCatalogo = false, pais = 
   const quitar = (id) => setItems(new Carrito(items).quitar(id).items);
   const vaciar = () => setItems([]);
   const cerrar = useCallback(() => setDrawerAbierto(false), []);
+
+  // Con productos en el carrito, el botón flotante envía el pedido en vez de una consulta.
+  const pedidoFlotante = useMemo(() => {
+    const pedido = new PedidoWhatsApp({ carrito, moneda, nombreObligatorio: false });
+    return pedido.valido ? pedido.url() : undefined;
+  }, [carrito, moneda]);
 
   const visibles = useMemo(() => {
     const { coincide } = FILTROS.find((f) => f.id === filtro);
@@ -176,7 +183,10 @@ export default function TiendaClient({ productos, errorCatalogo = false, pais = 
         © {new Date().getFullYear()} Yuan Store. Todos los derechos reservados.
       </footer>
 
-      <WhatsAppFlotante />
+      <WhatsAppFlotante
+        href={pedidoFlotante}
+        titulo={pedidoFlotante ? `Pedir por WhatsApp (${carrito.cantidadTotal} productos)` : undefined}
+      />
 
       <CarritoDrawer
         abierto={drawerAbierto}

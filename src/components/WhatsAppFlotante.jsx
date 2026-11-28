@@ -6,20 +6,21 @@ export const MENSAJE_WHATSAPP = "Hola Yuan Store, tengo una duda sobre un produc
 const MENSAJE = MENSAJE_WHATSAPP;
 
 /**
- * Botón circular flotante para consultas sin armar un pedido. Va debajo del drawer
+ * Botón circular flotante. Sin `href` abre una consulta genérica; TiendaClient le pasa
+ * el enlace del pedido cuando el carrito tiene productos. Va debajo del drawer
  * (z-30 < z-40) para que no tape el carrito al abrirlo.
  */
-export default function WhatsAppFlotante({ telefono = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER }) {
+export default function WhatsAppFlotante({ telefono = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER, href, titulo }) {
   const numero = String(telefono ?? "").replace(/\D/g, "");
   if (!numero) return null;
 
   return (
     <a
-      href={`https://wa.me/${numero}?text=${encodeURIComponent(MENSAJE)}`}
+      href={href ?? `https://wa.me/${numero}?text=${encodeURIComponent(MENSAJE)}`}
       target="_blank"
       rel="noopener noreferrer"
-      aria-label="Escríbenos por WhatsApp"
-      title="¿Dudas? Escríbenos"
+      aria-label={titulo ?? "Escríbenos por WhatsApp"}
+      title={titulo ?? "¿Dudas? Escríbenos"}
       className="fixed bottom-4 right-4 z-30 grid size-12 place-items-center rounded-full bg-acento text-fondo shadow-[0_0_20px_rgba(0,230,57,0.45)] transition hover:scale-105 hover:brightness-110 sm:bottom-6 sm:right-6 sm:size-14"
     >
       <svg viewBox="0 0 24 24" className="size-6 fill-current sm:size-7" aria-hidden>

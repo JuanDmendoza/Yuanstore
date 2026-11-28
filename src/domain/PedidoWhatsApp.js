@@ -7,22 +7,27 @@ export class PedidoWhatsApp {
     usuarioRoblox = "",
     moneda = MONEDA_DEFECTO,
     telefono = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER,
+    // El botón flotante de WhatsApp arma el pedido sin pasar por el formulario del drawer.
+    nombreObligatorio = true,
   }) {
     this.carrito = carrito;
     this.nombre = (nombre ?? "").trim();
     this.usuarioRoblox = (usuarioRoblox ?? "").trim();
     this.moneda = moneda ?? MONEDA_DEFECTO;
     this.telefono = String(telefono ?? "").replace(/\D/g, "");
+    this.nombreObligatorio = nombreObligatorio;
   }
 
   get valido() {
-    return this.nombre.length > 0 && !this.carrito.vacio && this.telefono.length > 0;
+    const nombreOk = !this.nombreObligatorio || this.nombre.length > 0;
+    return nombreOk && !this.carrito.vacio && this.telefono.length > 0;
   }
 
   /** Mensaje del pedido con los montos en la moneda/país seleccionado (los mismos que ve el cliente). */
   mensaje() {
     const { moneda, carrito } = this;
-    const lineas = ["*Nuevo pedido - Yuan Store*", "", `Nombre: ${this.nombre}`];
+    const lineas = ["*Nuevo pedido - Yuan Store*", ""];
+    if (this.nombre) lineas.push(`Nombre: ${this.nombre}`);
     if (this.usuarioRoblox) lineas.push(`Usuario de Roblox: ${this.usuarioRoblox}`);
     lineas.push(`País/Moneda: ${moneda.bandera} ${moneda.codigo}`);
     lineas.push("", "Pedido:");
